@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} Debug output {% endblock %}</h1>
+    <div>
+        {% for thread in threads %}
+            <div>{{ thread }}</div>
+        {% endfor %}
+    </div>
+{% endblock %}
+

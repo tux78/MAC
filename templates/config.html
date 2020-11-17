@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <form method="post">
+
+        <h1>{% block title %} Config for App {{ app.appID }} (Module: {{ app.module.moduleClassName }}) {% endblock %}</h1>
+        <hr>
+        <div class="row justify-content-end">
+            <button type="submit" class="btn btn-primary m-1">Save</button>
+        </div>
+        <hr>
+
+        <ul class="nav nav-tabs">
+          <li class="nav-item active"><a class="nav-link active"  data-toggle="tab" href="#Options">Options</a></li>
+          <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#Targets">Targets</a></li>
+          <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#Parameters">Parameters</a></li>
+        </ul>
+
+        <div class="tab-content">
+          <div id="Options" class="tab-pane fade in active show">
+            <h3>Options</h3>
+            <div class="input-group mb-3">
+              <div class="input-group-prepend">
+                <span class="input-group-text">Consumer</span>
+              </div>
+              <select class="custom-select" name="module_consume">
+                <option value="" selected>Default (kafka)</option>
+                {% for call in app.module.availCalls %}
+                    <option value="{{ call }}" {% if call == app.consume %}selected{% endif %}>{{ call }}</option>
+                {% endfor %}
+              </select>
+              <div class="input-group-prepend">
+                <span class="input-group-text">Interval</span>
+              </div>
+              <input
+                type="text"
+                value="{{ app.interval }}"
+                class="form-control"
+                aria-label="Default"
+                aria-describedby="inputGroup-sizing-default"
+                name="module_interval">
+            </div>
+            <div class="input-group mb-3">
+              <div class="input-group-prepend">
+                <span class="input-group-text">Processing</span>
+              </div>
+              <select class="custom-select" name="module_process">
+                <option value="" selected>Default (pass-through)</option>
+                {% for call in app.module.availCalls %}
+                    <option value="{{ call }}" {% if call == app.process %}selected{% endif %}>{{ call }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="input-group mb-3">
+              <div class="input-group-prepend">
+                <span class="input-group-text">Produce</span>
+              </div>
+              <select class="custom-select" name="module_produce">
+                <option value="" selected>Default (kafka)</option>
+                {% for call in app.module.availCalls %}
+                    <option value="{{ call }}" {% if call == app.produce %}selected{% endif %}>{{ call }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div id="Targets" class="tab-pane fade">
+            <h3>Targets</h3>
+            {% for target in targets if not target == app.appID %}
+              <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                  <div class="input-group-text">
+                    <input type="checkbox" name="targets_{{ target }}" {% if target in  app.targets %}checked="checked"{% endif %}>
+                  </div>
+                </div>
+                <input type="text" class="form-control" value="{{ target }}">
+              </div>
+            {% endfor %}
+          </div>
+          <div id="Parameters" class="tab-pane fade">
+            <h3>Parameters</h3>
+            {% for item in app.module.requiredParams %}
+              <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text" id="{{ item }}">{{ item }}</span>
+                </div>
+                <input
+                    type="text"
+                    value="{{ app.extParameters[item] }}"
+                    class="form-control"
+                    aria-label="Default"
+                    aria-describedby="inputGroup-sizing-default"
+                    name="parameters_{{  item  }}">
+              </div>
+            {% endfor %}
+          </div>  
+        </div>
+        <hr>
+    </form>
+{% endblock %}
