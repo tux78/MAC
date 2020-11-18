@@ -2,7 +2,7 @@ import os
 import threading
 import json
 
-from core import config
+from core import core
 
 from flask import Flask, render_template, request, redirect, url_for
 from flask_restful import Resource, Api
@@ -45,28 +45,24 @@ def get_apps():
         retVal = dict(request.form)
 
         if retVal['action'] == 'create':
-            myConfig.addApp(retVal['appID'], retVal['moduleID'])
+            myCore.addApp(retVal['appID'], retVal['moduleID'])
             return redirect(url_for('get_config', appID=retVal['appID']))
         elif retVal['action'] == 'delete':
-            myConfig.removeApp(retVal['appID'])
+            myCore.removeApp(retVal['appID'])
         elif retVal['action'] == 'start':
-            myConfig.startApp(retVal['appID'])
+            myCore.startApp(retVal['appID'])
         elif retVal['action'] == 'stop':
-            myConfig.stopApp(retVal['appID'])
+            myCore.stopApp(retVal['appID'])
         elif retVal['action'] == 'restart':
-            myConfig.stopApp(retVal['appID'])
-            myConfig.startApp(retVal['appID'])
+            myCore.stopApp(retVal['appID'])
+            myCore.startApp(retVal['appID'])
         else:
             return 'Application Error: unknown action'
 
-    retVal = {}
-    for appID, app in myConfig._apps_new.items():
-        retVal[appID] = {
-            'status' : 'started' if app.started() else 'stopped',
-            'targets' : app.targets,
-            'actions' : [bn_stop if app.started() else bn_start, bn_restart]
-        }
-    return render_template('apps.html', appStatus=retVal, modules=myConfig._modules_new)
+    retVal = myCore.getStatus()
+    for key, value in retVal.items():
+        retVal[key]['actions'] = [bn_stop if value['status'] == 'started' else bn_start, bn_restart]
+    return render_template('apps.html', appStatus=retVal, modules=myCore.config.modules)
 
 @api.route('/config/<appID>', methods=['GET','POST'])
 def get_config(appID):
@@ -83,14 +79,14 @@ def get_config(appID):
             elif key[0] == 'targets':
                 output[key[0]].append(key[1])
 
-        myConfig.updateApp(appID, **output)
+        myCore.updateApp(appID, **output)
         return redirect(url_for('get_apps'))
 
     return render_template(
         'config.html', 
-        app=myConfig._apps_new[appID], 
-        targets=myConfig.getTargets(),
-        buttons=[bn_stop if myConfig._apps_new[appID].started() else bn_start]
+        app=myCore.config.apps[appID], 
+        targets=myCore.getTargets(),
+        buttons=[bn_stop if myCore.config.apps[appID].started() else bn_start]
     )
 
 @api.route('/modules', methods=['GET','POST'])
@@ -99,12 +95,12 @@ def get_modules():
     if request.method == 'POST':
         retVal = dict(request.form)
         if retVal['action'] == 'create':
-            myConfig.addModule(module=retVal['moduleID'])
+            myCore.addModule(moduleID=retVal['moduleID'])
             return redirect(url_for('get_module', moduleID=retVal['moduleID']))
         elif retVal['action'] == 'delete':
-            myConfig.removeModule(module=retVal['moduleID'])
+            myCore.removeModule(moduleID=retVal['moduleID'])
 
-    return render_template('modules.html', modules=myConfig._modules_new)
+    return render_template('modules.html', modules=myCore.config.modules)
 
 @api.route('/module/<moduleID>', methods=['GET','POST'])
 def get_module(moduleID):
@@ -112,17 +108,14 @@ def get_module(moduleID):
     content = ''
     if request.method == 'POST':
         content = dict(request.form)['content']
-        with open(myConfig._modules_new[moduleID].filename, "w") as moduleFile:
-            moduleFile.write(content)
+        myCore.updateModule(moduleID=moduleID, content=content)
         return redirect(url_for('get_modules'))
-    if not content:
-        with open(myConfig._modules_new[moduleID].filename) as moduleFile:
-            content = moduleFile.read()
+    content = myCore.getModuleContent(moduleID)
     return render_template('module.html', moduleID=moduleID, moduleContent=content)
 
 ##### END FLASK #####
 
-myConfig = config(configFile='config.json', basedir='/app/')
+myCore = core(configFile='config.json', basedir='/app/')
 
 appRunning = {}
 

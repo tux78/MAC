@@ -74,125 +74,64 @@ class appFactory(messageBrokerFactory, threading.Thread):
     def getThreads(self):
         return [thread.name for thread  in threading.enumerate()]
 
-class config:
-
-    _modules_new = {}
-    _apps_new = {}
+class core:
 
     def __init__(self, configFile='config.json', basedir="/app/"):
-        self.basedir = basedir
-        self.configFile = self.basedir + configFile
-        self.reloadConfig()
+        self.config = config(configFile=configFile, basedir=basedir)
 
-    def reloadConfig(self):
-        with open(self.configFile) as configFile:
-            config = json.load(configFile)
-            #for moduleName, moduleContent in self._getModules().items():
-            #    self._modules_new[moduleName] = module(**moduleContent)
-            self._modules_new = self._getModules()
-
-            for key, value in config.items():
-                self._apps_new[key] = app(
-                    appID = key,
-                    module = self._modules_new[value['module']],
-                    consume = value['consume'],
-                    process = value['process'],
-                    produce = value['produce'],
-                    interval = int(value['interval']),
-                    targets = value['targets'],
-                    extParameters = value['parameters']
-                )
-
-    def writeConfig(self, backup=True):
-        if backup:
-            with open(self.configFile) as configFile:
-                config = json.load(configFile)
-            with open(self.configFile + '.bak', 'w') as configFile:
-                configFile.write(json.dumps(config, indent=4))
-
-        with open(self.configFile, 'w') as configFile:
-            config = dict((app.appID, app.write()) for app in self._apps_new.values())
-            configFile.write(json.dumps(config, indent=4))
-
+    ############
+    # UI actions
+    ############
     def getTargets(self):
-        return self._apps_new.keys()
+        return self.config.apps.keys()
 
+    def getStatus(self):
+        retVal = {}
+        for app in self.config.apps.values():
+            retVal[app.appID] = {
+                'status' : 'started' if app.started() else 'stopped',
+                'targets' : app.targets,
+            }
+        return retVal
+
+    def getModuleContent(self, moduleID):
+        with open(self.config.modules[moduleID].filename) as moduleFile:
+            content = moduleFile.read()
+        return content
+
+    #############
+    # App actions
+    #############
     def addApp(self, appID, module, **kwargs):
-        self._apps_new[appID] = app(
-            appID = appID,
-            module = self._modules_new[module]
-        )
+        self.config.addApp(appID = appID, module = module)
 
     def updateApp(self, appID, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self._apps_new[appID], key, value)
-        self.writeConfig()
+        self.config.updateApp(appID = appID, **kwargs)
 
     def removeApp(self, appID):
-        self._apps_new.pop(appID)
-        self.writeConfig()
+        self.config.removeApp(appID)
 
     def startApp(self, appID):
-        self._apps_new[appID].start()
+        self.config.startApp(appID)
 
     def stopApp(self, appID):
-        self._apps_new[appID].stop()
+        self.config.stopApp(appID)
 
-    def addModule(self, module):
-        filename = self.basedir + 'extensions/' + module  + '.py'
-        with open(filename, 'a') as moduleFile:
-           moduleFile.write('import threading\r\n\r\nclass ' + module + ':\r\n' + 
-"""\
+    ################
+    # Module actions
+    ################
+    def addModule(self, moduleID):
+        self.config.addModule(moduleID = moduleID)
 
-    def __init__(self, username, ip):
-        self.username = username
-        self.ip = ip
-        # initialize any required internal variables
-        # such as credentials, IP addresses etc
+    def updateModule(self, moduleID, content):
+        self.config.updateModule(moduleID = moduleID, content = content)
 
-    def getData(self, sentinel : threading.Event = threading.Event(), interval : int = 3600):
-        while not sentinel.is_set():
-            # enter code here
-            # for continuous processing, have interval = 0
-            sentinel.wait(interval)
+    def removeModule(self, moduleID):
+        self.config.removeModule(moduleID = moduleID)
 
-    def sendData(self, payload):
-        # send payload to desired destination
-        # file output, consumer
-        pass
-"""
-           )
-        self._modules_new = self._getModules()
-
-    def removeModule(self, module):
-        filename = self._modules_new[module].filename
-        os.remove(filename)
-        self._modules_new = self._getModules()
-
-    ############################
-    # private functions
-    ############################
-    def _getModules(self):
-        _modules = {}
-        for subdir, dirs, files in os.walk(self.basedir + 'extensions'):
-            for filename in files:
-                filepath = subdir + os.sep + filename
-
-                if filename.endswith(".py"):
-                    moduleName = filepath[len(self.basedir):-3].replace('/', '.')
-                    spec = importlib.util.spec_from_file_location(moduleName, filepath)
-                    foo = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(foo)
-                    for key, value in foo.__dict__.items():
-                        if type(value) is type and value.__module__ == moduleName:
-                            _modules[key] = module(**{
-                                'moduleClassName' : key,
-                                'moduleName'      : moduleName,
-                                'extClass'        : foo.__dict__[key],
-                                'filename'        : filepath
-                            })
-        return _modules
-
+##############
+# Data Classes
+##############
 from dataclasses import dataclass, field
 
 @dataclass
@@ -257,3 +196,130 @@ class app:
             'targets'   : self.targets,
             'parameters': self.extParameters
         }
+
+@dataclass
+class config:
+    basedir    : str
+    configFile : str
+    modules    : { str : module } = field(init=False)
+    apps       : { str : app} = field(init=False)
+
+    def __post_init__(self):
+        self.modules = self._getModules()
+        self.apps = self._getApps()
+
+    def _getModules(self):
+        _modules = {}
+        for subdir, dirs, files in os.walk(self.basedir + 'extensions'):
+            for filename in files:
+                filepath = subdir + os.sep + filename
+
+                if filename.endswith(".py"):
+                    moduleName = filepath[len(self.basedir):-3].replace('/', '.')
+                    spec = importlib.util.spec_from_file_location(moduleName, filepath)
+                    foo = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(foo)
+                    for key, value in foo.__dict__.items():
+                        if type(value) is type and value.__module__ == moduleName:
+                            _modules[key] = module(**{
+                                'moduleClassName' : key,
+                                'moduleName'      : moduleName,
+                                'extClass'        : foo.__dict__[key],
+                                'filename'        : filepath
+                            })
+        return _modules
+
+    def _getApps(self):
+        _apps = {}
+        with open(self.basedir + self.configFile) as configFile:
+            config = json.load(configFile)
+
+            for key, value in config.items():
+                _apps[key] = app(
+                    appID = key,
+                    module = self.modules[value['module']],
+                    consume = value['consume'],
+                    process = value['process'],
+                    produce = value['produce'],
+                    interval = int(value['interval']),
+                    targets = value['targets'],
+                    extParameters = value['parameters']
+                )
+        return _apps
+
+    def _writeConfig(self, backup=True):
+        if backup:
+            with open(self.basedir + self.configFile) as configFile:
+                config = json.load(configFile)
+            with open(self.basedir + self.configFile + '.bak', 'w') as configFile:
+                configFile.write(json.dumps(config, indent=4))
+
+        with open(self.basedir + self.configFile, 'w') as configFile:
+            config = dict((app.appID, app.write()) for app in self.apps.values())
+            configFile.write(json.dumps(config, indent=4))
+
+    ###################
+    # Module operations
+    ###################
+    def addModule(self, moduleID):
+        filename = self.basedir + 'extensions/' + moduleID + '.py'
+        with open(filename, 'a') as moduleFile:
+           moduleFile.write('import threading\r\n\r\nclass ' + moduleID + ':\r\n' +
+"""\
+
+    def __init__(self, username, ip):
+        self.username = username
+        self.ip = ip
+        # initialize any required internal variables
+        # such as credentials, IP addresses etc
+
+    def getData(self, sentinel : threading.Event = threading.Event(), interval : int = 3600):
+        while not sentinel.is_set():
+            # enter code here
+            # for continuous processing, have interval = 0
+            sentinel.wait(interval)
+
+    def sendData(self, payload):
+        # send payload to desired destination
+        # file output, consumer
+        pass
+"""
+           )
+        self.modules = self._getModules()
+
+    def updateModule(self, moduleID, content):
+        with open(self.modules[moduleID].filename, "w") as moduleFile:
+            moduleFile.write(content)
+        self.modules = self._getModules()
+
+    def removeModule(self, moduleID):
+        filename = self.modules[moduleID].filename
+        os.remove(filename)
+        self.modules = self._getModules()
+
+    ################
+    # App Operations
+    ################
+    def addApp(self, appID, moduleID, **kwargs):
+        self.apps[appID] = app(
+            appID = appID,
+            module = self.modules[moduleID],
+            **kwargs
+        )
+        self._writeConfig()
+
+    def updateApp(self, appID, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self.apps[appID], key, value)
+        self._writeConfig()
+
+    def removeApp(self, appID):
+        self.apps.pop(appID)
+        self._writeConfig()
+
+    def startApp(self, appID):
+        self.apps[appID].start()
+
+    def stopApp(self, appID):
+        self.apps[appID].stop()
+
