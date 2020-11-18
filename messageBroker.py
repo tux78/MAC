@@ -1,8 +1,9 @@
 from pykafka import KafkaClient, exceptions
 
+import queue
 import json
 
-class messageBrokerFactory:
+class messageBrokerFactory_kafka:
 
     def __init__(self, appID, topicOut=[], debug=False):
 
@@ -48,6 +49,36 @@ class messageBrokerFactory:
             print(self.appID + ': ' + 'Creating outbound topic: ' + topic)
         topic_write = self.client.topics[topic]
         return topic_write.get_producer()
+
+class messageBrokerFactory:
+
+    brokerList : { str : queue.Queue } = {}
+
+    def __init__(self, appID, topicOut=[], debug=False):
+
+        self.appID = appID
+        self.debug = debug
+        self.topicOut = topicOut
+
+        messageBrokerFactory.brokerList[self.appID] = queue.Queue()
+        self.queue = ''
+
+        if self.debug:
+            print(self.appID + ': ' + 'class created')
+
+    def consume(self, sentinel, **kwargs):
+        if not self.queue:
+            self.queue = messageBrokerFactory.brokerList[self.appID]
+        while not sentinel.is_set():
+            if not self.queue.empty():
+                message = self.queue.get()
+                yield message
+
+    def produce(self, payload):
+        if self.debug:
+            print(self.appID + ': ' + 'Producing message')
+        for topic in self.topicOut:
+            messageBrokerFactory.brokerList[topic].put(payload)
 
 class appError(Exception):
 
