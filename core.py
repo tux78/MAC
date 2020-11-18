@@ -102,8 +102,8 @@ class core:
     #############
     # App actions
     #############
-    def addApp(self, appID, module, **kwargs):
-        self.config.addApp(appID = appID, module = module)
+    def addApp(self, appID, moduleID, **kwargs):
+        self.config.addApp(appID = appID, moduleID = moduleID)
 
     def updateApp(self, appID, **kwargs):
         self.config.updateApp(appID = appID, **kwargs)

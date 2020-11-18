@@ -45,7 +45,7 @@ def get_apps():
         retVal = dict(request.form)
 
         if retVal['action'] == 'create':
-            myCore.addApp(retVal['appID'], retVal['moduleID'])
+            myCore.addApp(appID=retVal['appID'], moduleID=retVal['moduleID'])
             return redirect(url_for('get_config', appID=retVal['appID']))
         elif retVal['action'] == 'delete':
             myCore.removeApp(retVal['appID'])
