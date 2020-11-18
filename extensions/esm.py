@@ -42,6 +42,29 @@ class esm():
         for erc in response.json():
             self.device_id.append(erc['id'])
 
+    def dsGetDataSourceListOnce(self, **kwargs):
+
+        if not(self._heartbeat()):
+            raise ValueError('Cannot login.')
+
+        for erc in self.device_id:
+            dslist = []
+            payload = {'receiverId' : erc}
+            retVal = self._call_API('dsGetDataSourceList', payload)
+
+            if (self.get_details):
+                for ds in retVal.json():
+                    payload = {'datasourceId' : str(ds['id'])}
+                    parent = self._call_API('dsGetDataSourceDetail', payload).json()
+                    parent['id'] = str(ds['id'])
+                    dslist.append (parent)
+            else:
+                dslist = retVal.json()
+
+            # Create and send message
+            payload = json.dumps(dslist)
+            yield payload
+
     def dsGetDataSourceList(self, sentinel : threading.Event = threading.Event(), interval : int = 3600):
 
         while not sentinel.is_set():

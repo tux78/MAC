@@ -50,9 +50,9 @@ class appFactory(messageBrokerFactory, threading.Thread):
         threading.Thread.join(self)
 
     def appConsume(self):
-        while not self.action.is_set():
-            for payload in self.consume(sentinel=self.action, interval=self.app.interval):
-                self.processQueue.put(payload)
+        for payload in self.consume(**{'sentinel' : self.action, 'interval' : int(self.app.interval)}):
+            self.processQueue.put(payload)
+        self.stop()
 
 
     def appProcess(self):
@@ -149,9 +149,6 @@ class module:
         self.requiredParams = self.extClass.__init__.__code__.co_varnames[1:self.extClass.__init__.__code__.co_argcount]
         self.availCalls = [call for call in dir(self.extClass) if not call[0] == '_']
 
-    def write(self):
-        return self.moduleClassName, self.moduleName
-
 @dataclass
 class app:
     appID         : str
@@ -189,8 +186,8 @@ class app:
     def write(self):
         return {
             'module'    : self.module.moduleClassName,
-            'consume'  : self.consume,
-            'process'  : self.process,
+            'consume'   : self.consume,
+            'process'   : self.process,
             'produce'   : self.produce,
             'interval'  : self.interval,
             'targets'   : self.targets,
@@ -273,10 +270,15 @@ class config:
         # initialize any required internal variables
         # such as credentials, IP addresses etc
 
-    def getData(self, sentinel : threading.Event = threading.Event(), interval : int = 3600):
+    def getDataOnce(self, **kwargs):
+        yield 'some data'
+
+    def getDataAsStream(self, sentinel : threading.Event = threading.Event(), interval : int = 3600):
         while not sentinel.is_set():
             # enter code here
             # for continuous processing, have interval = 0
+            # the interval can be configured from within the App configuration
+            yield 'some data'
             sentinel.wait(interval)
 
     def sendData(self, payload):
