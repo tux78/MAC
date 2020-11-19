@@ -12,8 +12,9 @@ Apps are instances of the Modules, and provide automation capabilities. An App f
 - consume event (e.g. ESM: get list of data sources)
 - process event (e.g. ATD: filter on certain reputations only)
 - produce event (e.g. File: write to file)
+
 In order to setup a workflow, Apps can be connected to each other by defining Targets (target App). Payload produced
 by a certain App will in turn be consumed by the target App.
 
 Some Modules require parameters to work properly (e.g. ESM: credentials, IP address), which is configured on a per App basis.
-Those required parameters are defined in the __init__ function of a particular module
+Those required parameters are defined in the \_\_init__ function of a particular module
