@@ -113,6 +113,20 @@ def get_module(moduleID):
     content = myCore.getModuleContent(moduleID)
     return render_template('module.html', moduleID=moduleID, moduleContent=content)
 
+@api.route('/dxl', methods=['GET','POST'])
+def get_dxl():
+
+    if request.method == 'POST':
+        retVal = dict(request.form)
+        action = retVal.pop('action')
+        if action == 'join':
+            myCore.provisionDXL(**retVal)
+        elif action == 'update':
+            myCore.updateDXL(**retVal)
+
+    dxlconfig = myCore.getDXLConfig()
+    return render_template('dxl.html', dxlconfig=dxlconfig)
+
 ##### END FLASK #####
 
 myCore = core(configFile='config.json', basedir='/app/')

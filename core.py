@@ -5,6 +5,7 @@ import json
 import os
 
 from messageBroker import messageBrokerFactory, appError
+from dxlclient import _cli
 
 class appFactory(messageBrokerFactory, threading.Thread):
 
@@ -109,6 +110,38 @@ class core:
         with open(self.config.modules[moduleID].filename) as moduleFile:
             content = moduleFile.read()
         return content
+
+    #############
+    # DXL Actions
+    #############
+    def getDXLConfig(self):
+        try:
+            with open(self.config.basedir + 'dxlconfig/dxlclient.config', 'r') as dxlConfigFile:
+                content = dxlConfigFile.read()
+        except:
+            print('File ' + self.config.basedir + 'dxlconfig/dxlclient.config' + ' not found')
+            content = ''
+        return content
+
+    def provisionDXL(self, host, user, password, port='8443', cn='MAC Application'):
+        dxlProvisioningArguments.host = host
+        dxlProvisioningArguments.user = user
+        dxlProvisioningArguments.password = password
+        dxlProvisioningArguments.port = port
+        dxlProvisioningArguments.common_or_csrfile_name = cn
+        dxlProvisioningArguments.config_dir = self.config.basedir + 'dxlconfig/'
+        dxlCommand = _cli.ProvisionDxlClientSubcommand()
+        dxlCommand.execute(dxlProvisioningArguments)
+
+    def updateDXL(self, host, user, password, port='8443'):
+        dxlProvisioningArguments.host = host
+        dxlProvisioningArguments.user = user
+        dxlProvisioningArguments.password = password
+        dxlProvisioningArguments.port = port
+        dxlProvisioningArguments.config_dir = self.config.basedir + 'dxlconfig/'
+        dxlCommand = _cli.UpdateConfigSubcommand()
+        dxlCommand.execute(dxlProvisioningArguments)
+
 
     #############
     # App actions
@@ -345,4 +378,27 @@ class config:
 
     def stopApp(self, appID):
         self.apps[appID].stop()
+
+class dxlProvisioningArguments:
+    # Hostinfo
+    host       = '' # required
+    user       = '' # required
+    password   = '' # required
+    port       = '8443' # default/required
+    truststore = ''
+    # Config
+    config_dir = '' # default
+    # Certificate
+    file_prefix            = 'client' # default
+    san                    = None
+    passphrase             = None
+    country                = None
+    state_or_province      = None
+    locality               = None
+    organization           = None
+    organizational_unit    = None
+    email_address          = None
+    # optional / provisioning
+    cert_request_file      = None
+    common_or_csrfile_name = 'MAC Application' # default/required
 
