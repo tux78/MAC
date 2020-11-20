@@ -61,7 +61,7 @@ def get_apps():
 
     retVal = myCore.getStatus()
     for key, value in retVal.items():
-        retVal[key]['actions'] = [bn_stop if value['status'] == 'started' else bn_start, bn_restart]
+        retVal[key]['actions'] = [bn_stop if value['status'] else bn_start, bn_restart]
     return render_template('apps.html', appStatus=retVal, modules=myCore.config.modules)
 
 @api.route('/config/<appID>', methods=['GET','POST'])

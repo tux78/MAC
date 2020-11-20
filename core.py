@@ -33,10 +33,10 @@ class appFactory(messageBrokerFactory, threading.Thread):
         self.status = 'running'
 
         consumeThread = threading.Thread(target=self.appConsume, name=self.name + '-consumer')
-        consumeThread.start()
         processThread = threading.Thread(target=self.appProcess, name=self.name + '-processor')
-        processThread.start()
         produceThread = threading.Thread(target=self.appProduce, name=self.name + '-producer')
+        consumeThread.start()
+        processThread.start()
         produceThread.start()
 
         while not self.action.is_set():
@@ -50,8 +50,12 @@ class appFactory(messageBrokerFactory, threading.Thread):
         threading.Thread.join(self)
 
     def appConsume(self):
-        for payload in self.consume(**{'sentinel' : self.action, 'interval' : int(self.app.interval)}):
-            self.processQueue.put(payload)
+        try:
+            for payload in self.consume(**{'sentinel' : self.action, 'interval' : int(self.app.interval)}):
+                self.processQueue.put(payload)
+        except Exception as err:
+            self.status = 'failure (please check module code): ' + str(err)
+
         self.stop()
 
 
@@ -59,14 +63,20 @@ class appFactory(messageBrokerFactory, threading.Thread):
         while not self.action.is_set():
             if not self.processQueue.empty():
                 payload = self.processQueue.get(block=False)
-                payload = self.process(payload)
+                try:
+                    payload = self.process(payload)
+                except Exception as err:
+                    self.status = 'failure (please check module code): ' + str(err)
                 self.produceQueue.put(payload)
 
     def appProduce(self):
         while not self.action.is_set():
             if not self.produceQueue.empty():
                 payload = self.produceQueue.get(block=False)
-                self.produce(payload)
+                try:
+                    self.produce(payload)
+                except Exception as err:
+                    self.status = 'failure (please check module code): ' + str(err)
 
     def process(self, payload):
         return payload
@@ -89,8 +99,9 @@ class core:
         retVal = {}
         for app in self.config.apps.values():
             retVal[app.appID] = {
-                'status' : 'started' if app.started() else 'stopped',
-                'targets' : app.targets,
+                'status'     : app.started(),
+                'statusCode' : app.status(),
+                'targets'    : app.targets
             }
         return retVal
 
@@ -181,7 +192,7 @@ class app:
         self._appInstance = ''
 
     def status(self):
-        return (self._obj.status if self._obj else 'stopped')
+        return (self._appInstance.status if self._appInstance else 'stopped')
 
     def write(self):
         return {
