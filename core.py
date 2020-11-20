@@ -213,15 +213,15 @@ class config:
 
                 if filename.endswith(".py"):
                     moduleName = filepath[len(self.basedir):-3].replace('/', '.')
-                    spec = importlib.util.spec_from_file_location(moduleName, filepath)
-                    foo = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(foo)
-                    for key, value in foo.__dict__.items():
+                    newModule = importlib.import_module(moduleName)
+                    importlib.invalidate_caches()
+                    newModule = importlib.reload(newModule)
+                    for key, value in newModule.__dict__.items():
                         if type(value) is type and value.__module__ == moduleName:
                             _modules[key] = module(**{
                                 'moduleClassName' : key,
                                 'moduleName'      : moduleName,
-                                'extClass'        : foo.__dict__[key],
+                                'extClass'        : newModule.__dict__[key],
                                 'filename'        : filepath
                             })
         return _modules
@@ -293,6 +293,16 @@ class config:
         with open(self.modules[moduleID].filename, "w") as moduleFile:
             moduleFile.write(content)
         self.modules = self._getModules()
+        # after the Module update the classes within the Apps 
+        # have to be updated as well; based on their status they are restarted
+        for app in self.apps.values():
+            if app.module.moduleClassName == moduleID:
+                status = app.started()
+                if status:
+                    app.stop()                
+                app.module = self.modules[moduleID]
+                if status:
+                    app.start()
 
     def removeModule(self, moduleID):
         filename = self.modules[moduleID].filename
