@@ -1,5 +1,6 @@
 import json
 from dxlclient import _cli
+from msiempy import NitroConfig
 import base64
 
 class IntegrationHandler:
@@ -12,8 +13,6 @@ class IntegrationHandler:
         }
         for key, value in self._models.items():
             setattr(self, key, value)
-        print(self._confDir)
-        print(self.dxl.getCurrentConfig(self._confDir))
 
     def getModel(self, model):
         if model in self._models and hasattr(self, model):
@@ -92,6 +91,10 @@ class esmConfig():
                 return file.read()
         except FileNotFoundError:
             return
+
+    @classmethod
+    def getNitroConfig(self, confDir):
+        return NitroConfig(path=confDir + 'esmclient.config')
 
     @classmethod
     def provision(self, confDir, host, user, password):
