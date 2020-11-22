@@ -113,29 +113,24 @@ def get_module(moduleID):
     content = myCore.getModuleContent(moduleID)
     return render_template('module.html', moduleID=moduleID, moduleContent=content)
 
-@api.route('/dxl', methods=['GET','POST'])
-def get_dxl():
+@api.route('/integration', methods=['GET','POST'])
+def get_integration():
 
     if request.method == 'POST':
         retVal = dict(request.form)
-        action = retVal.pop('action')
-        if action == 'join':
-            myCore.provisionDXL(**retVal)
-        elif action == 'update':
-            myCore.updateDXL(**retVal)
+        myCore.integration.execute(**retVal)
 
-    dxlconfig = myCore.getDXLConfig()
-    return render_template('dxl.html', dxlconfig=dxlconfig)
+    return render_template(
+        'integration.html', 
+        dxl=myCore.integration.execute('dxl', 'getCurrentConfig'),
+        esm=myCore.integration.execute('esm', 'getCurrentConfig')
+    )
 
 ##### END FLASK #####
 
 myCore = core(configFile='config.json', basedir='/app/')
 
 appRunning = {}
-
-import importlib
-import importlib.util
-from core import module
 
 def main():
 

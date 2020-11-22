@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% from "integrations/dxl.html" import dxlIntegration with context %}
+{% from "integrations/esm.html" import esmIntegration with context %}
+
+{% block content %}
+
+  <h1>{% block title %} Integrations {% endblock %}</h1>
+  <hr>
+
+  <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <a class="nav-link active" data-toggle="tab" href="#enable-DXL">DXL</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" data-toggle="tab" href="#enable-ESM">ESM</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link disabled" data-toggle="tab" href="#">DSB</a>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="Integrations">
+    <div class="tab-pane fade show active" id="enable-DXL" role="tabpanel">
+      {{ dxlIntegration(dxl) }}
+    </div>
+    <div class="tab-pane fade" id="enable-ESM" role="tabpanel">
+      {{ esmIntegration(esm) }}
+    </div>
+    <div class="tab-pane fade" id="enable-DSB" role="tabpanel">
+    </div>
+  </div>
+
+{% endblock %}

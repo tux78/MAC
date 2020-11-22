@@ -1,0 +1,113 @@
+{% macro dxlIntegration(currentConfig) %}
+  <h3>Data Exchange Layer (DXL)</h3>
+  <div>
+    The Data Exchange Layer Integration provides easy access to the DXL infrastructure.
+    By clicking on JOIN the system will send a CSR to the local ePO server,
+    and collect all necessary information. The required configuration including
+    the certificates is stored locally.
+  </div>
+  <hr>
+  {% if currentConfig %}
+    <div>
+      Current config:<br>
+      {% for line in currentConfig.split('\n') %}
+        {{ line }}<br>
+      {% endfor %}
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#update-DXL-modal">Update DXL Settings</button>
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#enable-DXL-modal">Re-Join DXL</button>
+    </div>
+    <hr>
+  {% else %}
+    <div>
+      <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#enable-DXL-modal">Join DXL</button>
+    </div>
+  {% endif %}
+
+  <!-- Required Modals -->
+  <!-- DXL Join -->
+  <form id="form-DXL-Join" method="POST">
+    <div class="modal fade" tabindex="-1" role="dialog" id="enable-DXL-modal">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Join DXL</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="host">Hostname/IP</label>
+              <input type="text" class="form-control" id="host" name="host">
+            </div>
+            <div class="form-group">
+              <label for="port">Port (8443)</label>
+              <input type="text" class="form-control" id="port" name="port" placeholder="8443">
+            </div>
+            <div class="form-group">
+              <label for="user">Username</label>
+              <input type="text" class="form-control" id="user" name="user" placeholder="admin">
+            </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input type="password" class="form-control" id="password" name="password">
+            </div>
+            <div class="form-group">
+              <label for="cn">Common Name</label>
+              <input type="text" class="form-control" id="cn" name="cn" placeholder="MAC Application">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <div>
+              Attention: this sends a new CSR to ePO
+            </div>
+            <input type="hidden" name="model" value="dxl">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary" name="action" value="provision">Join</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <!-- DXL Update -->
+  <form id="form-DXL-Update" method="POST">
+    <div class="modal fade" tabindex="-1" role="dialog" id="update-DXL-modal">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Update DXL</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="host">Hostname/IP</label>
+              <input type="text" class="form-control" id="host" name="host">
+            </div>
+            <div class="form-group">
+              <label for="port">Port (8443)</label>
+              <input type="text" class="form-control" id="port" name="port" placeholder="8443">
+            </div>
+            <div class="form-group">
+              <label for="user">Username</label>
+              <input type="text" class="form-control" id="user" name="user" placeholder="admin">
+            </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input type="password" class="form-control" id="password" name="password">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <input type="hidden" name="model" value="dxl">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary" name="action" value="update">Update</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+
+{% endmacro %}
