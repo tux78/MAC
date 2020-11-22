@@ -1,6 +1,8 @@
 import json
 from dxlclient import _cli
 from msiempy import NitroConfig
+from mesmpy import ESMCore
+
 import base64
 
 class IntegrationHandler:
@@ -97,6 +99,10 @@ class esmConfig():
         return NitroConfig(path=confDir + 'esmclient.config')
 
     @classmethod
+    def getESM(self, confDir):
+        return ESMCore(confDir=confDir)
+
+    @classmethod
     def provision(self, confDir, host, user, password):
         if not host or not user or not password:
             raise AttributeError
@@ -109,7 +115,10 @@ class esmConfig():
         return '[esm]\r\n'\
             + 'host = ' + host + '\r\n'\
             + 'user = ' + user + '\r\n'\
-            + 'passwd = ' + base64.b64encode(password.encode('utf-8')).decode()
+            + 'passwd = ' + base64.b64encode(password.encode('utf-8')).decode()\
+            + '[general]\r\n'\
+            + 'timeout = 10\r\n'\
+            + 'ssl_verify = false'
 
 class dsbConfig():
     dsbCaFile   : str = '/app/config/dsb_ca.pem'
