@@ -1,18 +1,16 @@
 import logging
 import queue
+from utils import IntegrationHandler
 
 from dxlclient.callbacks import EventCallback
-from dxlclient.client import DxlClient
-from dxlclient.client_config import DxlClientConfig
 from dxlclient.message import Event
 
-class opendxl:
+class OpenDXL:
 
-    def __init__(self, configFile, topic):
+    def __init__(self, topic):
+        self.client = IntegrationHandler().dxl.Client
         self.topic = topic
-        self.config = DxlClientConfig.create_dxl_config_from_file(configFile)
         self.queue = queue.Queue()
-        self.client = DxlClient(self.config)
         self.client.connect()
         self._listenerStarted = False
 

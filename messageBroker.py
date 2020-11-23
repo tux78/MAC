@@ -56,27 +56,29 @@ class messageBrokerFactory:
 
     def __init__(self, appID, topicOut=[], debug=False):
 
-        self.appID = appID
+        self.topicIn = appID.replace(' ', '_')
         self.debug = debug
-        self.topicOut = topicOut
+        self.topicOut = [topic.replace(' ', '_') for topic in topicOut]
 
-        messageBrokerFactory.brokerList[self.appID] = queue.Queue()
+        messageBrokerFactory.brokerList[self.topicIn] = queue.Queue()
         self.queue = ''
 
         if self.debug:
-            print(self.appID + ': ' + 'class created')
+            print(self.topicIn + ': ' + 'queue created')
 
     def consume(self, sentinel, **kwargs):
         if not self.queue:
-            self.queue = messageBrokerFactory.brokerList[self.appID]
+            self.queue = messageBrokerFactory.brokerList[self.topicIn]
         while not sentinel.is_set():
             if not self.queue.empty():
+                if self.debug:
+                    print(self.topicIn + ': ' + 'Consuming message')
                 message = self.queue.get()
                 yield message
 
     def produce(self, payload):
         if self.debug:
-            print(self.appID + ': ' + 'Producing message')
+            print(self.topicIn + ': ' + 'Producing message')
         for topic in self.topicOut:
             messageBrokerFactory.brokerList[topic].put(payload)
 

@@ -24,7 +24,10 @@ class appFactory(messageBrokerFactory, threading.Thread):
         super().__init__(self.app.appID, self.app.targets)
 
         self.status = 'Initializing ' + self.app.module.moduleClassName
-        obj = self.app.module.extClass(**self.app.extParameters)
+        try:
+            obj = self.app.module.extClass(**self.app.extParameters)
+        except Exception as err:
+            self.stop(str(err))
         self.status = 'Applying ' + self.app.module.moduleClassName + ' handlers'
         if self.app.consume:
             self.consume = getattr(obj, self.app.consume)
@@ -42,13 +45,13 @@ class appFactory(messageBrokerFactory, threading.Thread):
         processThread.start()
         produceThread.start()
 
-        while not self.action.is_set():
+        while not self.action.is_set() and self.status == 'running':
             pass
 
         obj = ''
 
-    def stop(self):
-        self.status = 'stopping ' + self.app.module.moduleClassName
+    def stop(self, reason = 'regular stop'):
+        self.status = 'stopping ' + self.app.module.moduleClassName + '. Reason: ' + reason
         self.action.set()
         threading.Thread.join(self)
 
@@ -56,11 +59,10 @@ class appFactory(messageBrokerFactory, threading.Thread):
         try:
             for payload in self.consume(**{'sentinel' : self.action, 'interval' : int(self.app.interval)}):
                 self.processQueue.put(payload)
+        except StopIteration:
+            self.stop()
         except Exception as err:
-            self.status = 'failure (please check module code): ' + str(err)
-
-        self.stop()
-
+            self.stop(str(err))
 
     def appProcess(self):
         while not self.action.is_set():
@@ -68,9 +70,9 @@ class appFactory(messageBrokerFactory, threading.Thread):
                 payload = self.processQueue.get(block=False)
                 try:
                     payload = self.process(payload)
+                    self.produceQueue.put(payload)
                 except Exception as err:
-                    self.status = 'failure (please check module code): ' + str(err)
-                self.produceQueue.put(payload)
+                    self.stop(tr(err))
 
     def appProduce(self):
         while not self.action.is_set():
@@ -79,7 +81,7 @@ class appFactory(messageBrokerFactory, threading.Thread):
                 try:
                     self.produce(payload)
                 except Exception as err:
-                    self.status = 'failure (please check module code): ' + str(err)
+                    self.stop(str(err))
 
     def process(self, payload):
         return payload

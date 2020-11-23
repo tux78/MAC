@@ -31,6 +31,10 @@ class ESMConfig(configparser.ConfigParser):
         return self.get("esm", "passwd")
 
     @property
+    def verbose(self):
+        return self.getboolean("general", "verbose")
+
+    @property
     def timeout(self):
         return self.getint("general", "timeout")
 
@@ -38,8 +42,15 @@ class ESMConfig(configparser.ConfigParser):
     def ssl_verify(self):
         return self.getboolean("general", "ssl_verify")
 
+    @property
+    def quiet(self):
+        return self.getboolean("general", "quiet")
 
-class ESMCore:
+    @property
+    def logfile(self):
+        return self.getboolean("general", "logfile")
+
+class ESMSession:
 
     def __init__(self, confDir):
 
@@ -57,7 +68,7 @@ class ESMCore:
 
         # Test Login
         if not(self.loggedIn):
-            raise RuntimeError('ESMCore: Cannot login.')
+            raise RuntimeError('ESMSession: Cannot login.')
 
     def _login (self):
 
@@ -82,7 +93,7 @@ class ESMCore:
         self.session.headers['X-Xsrf-Token'] = response.headers.get('Xsrf-Token')
         self.session.headers['SID'] = response.headers.get('Location')
 
-        print('ESM: Login successful.')
+        print('ESMSession: Login successful.')
         return True
 
     @property
@@ -91,7 +102,7 @@ class ESMCore:
         response = requests.post(
             self.url + 'miscKeepAlive',
             headers = self.session.headers,
-            verify = False
+            verify = self.config.ssl_verify
         )
         if response.status_code in [200, 204]:
             return True
@@ -99,6 +110,9 @@ class ESMCore:
             return self._login()
 
     def call_API (self, method, payload, http='POST', raw=False, retry=1):
+
+        if not method == 'login' and not self.loggedIn:
+            return
 
         try:
             response = self.session.request(
@@ -112,7 +126,7 @@ class ESMCore:
 
             if retry > 0:
                 time.sleep(1)
-                return self.call_api(
+                return self.call_API(
                     method, payload, http, retry=retry - 1
                 )
             else:

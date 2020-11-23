@@ -34,7 +34,7 @@
                 <a href="/config/{{ app }}">
                     <h2>{{ app }}</h2>
                 </a>
-                <button type="button" class="close" data-toggle="modal" data-target="#delete-{{ app }}">
+                <button type="button" class="close" data-toggle="modal" data-target="#delete-{{ app.replace(' ', '') }}">
                   <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -60,7 +60,7 @@
 <!-- Modal per App-->
 {% for app in appStatus %}
 <form method="post" id="appDelete">
-<div class="modal fade" id="delete-{{ app }}" tabindex="-1" role="dialog">
+<div class="modal fade" id="delete-{{ app.replace(' ', '') }}" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
