@@ -128,7 +128,7 @@ class esmConfig:
         return '[esm]\r\n'\
             + 'host = ' + host + '\r\n'\
             + 'user = ' + user + '\r\n'\
-            + 'passwd = ' + base64.b64encode(password.encode('utf-8')).decode()\
+            + 'passwd = ' + base64.b64encode(password.encode('utf-8')).decode() + '\r\n'\
             + '[general]\r\n'\
             + 'timeout = 10\r\n'\
             + 'verbose = false\r\n'\
