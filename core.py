@@ -63,6 +63,7 @@ class appFactory(messageBrokerFactory, threading.Thread):
             self.stop()
         except Exception as err:
             self.stop(str(err))
+        self.stop()
 
     def appProcess(self):
         while not self.action.is_set():
@@ -91,7 +92,7 @@ class appFactory(messageBrokerFactory, threading.Thread):
 
 class core:
 
-    def __init__(self, configFile='config.json', basedir='/app/'):
+    def __init__(self, configFile='config/config.json', basedir='/app/'):
         self.config = config(configFile=configFile, basedir=basedir)
         self._integration = IntegrationHandler(basedir)
 
