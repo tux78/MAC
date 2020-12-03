@@ -10,14 +10,6 @@ from dxlclient.message import Event
 from dxltieclient import TieClient
 from dxltieclient.constants import HashType, TrustLevel, FileType, FileProvider, ReputationProp
 
-class payload_Tie(TypedDict):
-    HashType.MD5: str
-    HashType.SHA1: str
-    HashType.SHA256: str
-    filetype: int
-    filename: str
-    comment: str
-
 class OpenDXL:
 
     def __init__(self, topic):
@@ -56,20 +48,6 @@ class OpenDXL:
         self.client.send_event(event)
 
     def setTieReputation(self, payload):
-        test: payload_Tie = {
-            'md5'      : 'abc',
-            'sha1'     : 'def',
-            'sha256'   : 'ghi',
-#            'filetype' : 0,
-#            'filename' : 'test.exe',
-            'commentars'  : 'Added by MAC'
-        }
-        try:
-            tmp = payload_Tie(test)
-            print('Type: ' + str(type(test)) + str(test))
-        except Exception as err:
-            print('Error: ' + str(err))
-        return
         tie_client = TieClient(self.client)
 
         hashes = {
