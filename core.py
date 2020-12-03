@@ -73,7 +73,7 @@ class appFactory(messageBrokerFactory, threading.Thread):
                     payload = self.process(payload)
                     self.produceQueue.put(payload)
                 except Exception as err:
-                    self.stop(tr(err))
+                    self.stop(str(err))
 
     def appProduce(self):
         while not self.action.is_set():
@@ -160,6 +160,11 @@ class core:
 from dataclasses import dataclass, field
 
 @dataclass
+class function:
+    call : type
+    requiredParams : list[tuple]
+
+@dataclass
 class module:
     moduleClassName : str
     moduleName      : str
@@ -167,12 +172,20 @@ class module:
     filename        : str
     requiredParams  : list[str] = field(init=False, repr=False)
     availCalls      : list[str] = field(init=False, repr=False)
+    calls           : dict[str: type] = field(init=False)
 
     def __post_init__(self):
         if not self.extClass:
             self.extClass = getattr(importlib.import_module(self.moduleName), self.moduleClassName)
         self.requiredParams = self.extClass.__init__.__code__.co_varnames[1:self.extClass.__init__.__code__.co_argcount]
         self.availCalls = [call for call in dir(self.extClass) if not call[0] == '_']
+        self.calls = {}
+        for call in dir(self.extClass):
+            if not call[0] == '_':
+                self.calls[call] = function(
+                    call = getattr(self.extClass, call),
+                    requiredParams = getattr(self.extClass, call).__kwdefaults__
+                )
 
 @dataclass
 class app:
@@ -185,7 +198,7 @@ class app:
     targets       : list[str] = ()
     extParameters : list[tuple] = ()
 
-    _appInstance        : type = field(init=False)
+    _appInstance  : type = field(init=False)
 
     def __post_init__(self):
         self._appInstance = ''
@@ -228,7 +241,7 @@ class config:
 
     def __post_init__(self):
         self.modules = self._getModules()
-        self.apps = self._getApps()
+        self.apps = self._readConfig()
 
     def _getModules(self):
         _modules = {}
@@ -251,7 +264,7 @@ class config:
                             })
         return _modules
 
-    def _getApps(self):
+    def _readConfig(self):
         _apps = {}
         with open(self.basedir + self.configFile) as configFile:
             config = json.load(configFile)

@@ -1,9 +1,22 @@
 import logging
 import queue
+import json
+from typing import TypedDict
 from utils import IntegrationHandler
 
 from dxlclient.callbacks import EventCallback
 from dxlclient.message import Event
+
+from dxltieclient import TieClient
+from dxltieclient.constants import HashType, TrustLevel, FileType, FileProvider, ReputationProp
+
+class payload_Tie(TypedDict):
+    HashType.MD5: str
+    HashType.SHA1: str
+    HashType.SHA256: str
+    filetype: int
+    filename: str
+    comment: str
 
 class OpenDXL:
 
@@ -42,3 +55,44 @@ class OpenDXL:
         event.payload = str(payload).encode()
         self.client.send_event(event)
 
+    def setTieReputation(self, payload):
+        test: payload_Tie = {
+            'md5'      : 'abc',
+            'sha1'     : 'def',
+            'sha256'   : 'ghi',
+#            'filetype' : 0,
+#            'filename' : 'test.exe',
+            'commentars'  : 'Added by MAC'
+        }
+        try:
+            tmp = payload_Tie(test)
+            print('Type: ' + str(type(test)) + str(test))
+        except Exception as err:
+            print('Error: ' + str(err))
+        return
+        tie_client = TieClient(self.client)
+
+        hashes = {
+            HashType.MD5: payload['fileMD5'],
+            HashType.SHA1: payload['fileSHA1'],
+            HashType.SHA256: payload['fileSHA256']
+        }
+        reputations_dict = tie_client.get_file_reputation(hashes)
+
+        has_definitive_reputation = \
+            any([rep[ReputationProp.TRUST_LEVEL] != TrustLevel.NOT_SET
+                 and rep[ReputationProp.TRUST_LEVEL] != TrustLevel.UNKNOWN
+                 and rep[ReputationProp.PROVIDER_ID] != FileProvider.EXTERNAL
+                 for rep in reputations_dict.values()])
+
+        if not has_definitive_reputation:
+            try:
+                tie_client.set_external_file_reputation(
+                    TrustLevel.MIGHT_BE_TRUSTED,
+                    hashes,
+                    file_type=payload['filetype'],
+                    filename=payload['filename'],
+                    comment=payload['comment']
+                )
+            except ValueError as e:
+                pass

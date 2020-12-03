@@ -134,11 +134,6 @@ appRunning = {}
 
 def main():
 
-    # Get kwargs/defaults of a function:
-    # print(str(myCore.config.modules['OpenDXL'].extClass.getMessage.__kwdefaults__))
-    # note: both *args and **kwargs have to be configured. If no *args expected, use * instead.
-    # the function needs to be as follows:
-    # def funct(self, *, default=some_value, **kwargs):
     api.run(host='0.0.0.0')
 
 if __name__ == "__main__":

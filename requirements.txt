@@ -3,5 +3,6 @@ requests
 flask
 flask_restful
 dxlclient
+dxltieclient
 msiempy
 pymisp
