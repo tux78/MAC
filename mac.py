@@ -39,55 +39,38 @@ def index():
 def get_debug():
     return render_template('debug.html', threads=[thread.name for thread in threading.enumerate()])
 
-@api.route('/apps', methods=['GET','POST'])
-def get_apps():
+@api.route('/runners', methods=['GET','POST'])
+def get_runners():
     if request.method == 'POST':
         retVal = dict(request.form)
 
         if retVal['action'] == 'create':
-            myCore.addApp(appID=retVal['appID'], moduleID=retVal['moduleID'])
-            return redirect(url_for('get_config', appID=retVal['appID']))
+            extParameters = {key.split("_", 1)[1]: value for key, value in retVal.items() if key.startswith('parameters_')}
+            targets = [key.split("_", 1)[1] for key in retVal if key.startswith('targets_')]
+            print(str(retVal) + '||' + str(extParameters) + '||' + str(targets))
+            myCore.addRunner(runnerID=retVal['runnerID'],
+                module=retVal['module'],
+                runner=retVal['runner'],
+                interval = int(retVal['interval']),
+                targets = targets,
+                extParameters = extParameters
+            )
         elif retVal['action'] == 'delete':
-            myCore.removeApp(retVal['appID'])
+            myCore.removeApp(retVal['runnerID'])
         elif retVal['action'] == 'start':
-            myCore.startApp(retVal['appID'])
+            myCore.startApp(retVal['runnerID'])
         elif retVal['action'] == 'stop':
-            myCore.stopApp(retVal['appID'])
+            myCore.stopApp(retVal['runnerID'])
         elif retVal['action'] == 'restart':
-            myCore.stopApp(retVal['appID'])
-            myCore.startApp(retVal['appID'])
+            myCore.stopApp(retVal['runnerID'])
+            myCore.startApp(retVal['runnerID'])
         else:
             return 'Application Error: unknown action'
 
     retVal = myCore.getStatus()
     for key, value in retVal.items():
         retVal[key]['actions'] = [bn_stop if value['status'] else bn_start, bn_restart]
-    return render_template('apps.html', appStatus=retVal, modules=myCore.config.modules)
-
-@api.route('/config/<appID>', methods=['GET','POST'])
-def get_config(appID):
-
-    if request.method == 'POST':
-        retVal = request.form
-        output = {'extParameters' : {}, 'targets' : []}
-        for key, value in retVal.items():
-            key = key.split("_", 1)
-            if key[0] == 'module':
-                output[key[1]] = value
-            elif key[0] == 'parameters':
-                output['extParameters'][key[1]] = value
-            elif key[0] == 'targets':
-                output[key[0]].append(key[1])
-
-        myCore.updateApp(appID, **output)
-        return redirect(url_for('get_apps'))
-
-    return render_template(
-        'config.html', 
-        app=myCore.config.apps[appID], 
-        targets=myCore.getTargets(),
-        buttons=[bn_stop if myCore.config.apps[appID].started() else bn_start]
-    )
+    return render_template('runners.html', runners=myCore.config.apps, modules=myCore.config.modules)
 
 @api.route('/modules', methods=['GET','POST'])
 def get_modules():
@@ -138,4 +121,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

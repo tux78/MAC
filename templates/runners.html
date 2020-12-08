@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% from "macros/module.html" import moduleView with context %}
+{% from "macros/module.html" import configRunner with context %}
+
+{% block content %}
+
+<div class="row">
+  <div class="col">
+    <div class="row">
+    <form method="post" id="runnerStatus">
+      {% for runnerID, runner in runners.items() %}
+        <div class="card shadow p-3 m-2 bg-white rounded" style="width: 28rem;">
+            <div class="card-header">
+                <!--a href="/config/{{ app }}"-->
+                <a data-toggle="modal" data-target="#create-{{ runnerID.replace(' ', '') }}-modal">
+                    <h3>{{ runnerID }}</h3>
+                </a>
+                {{ configRunner(runnerID, runner.module.moduleClassName, runner.runner, runner.interval, runner.extParameters, targets) }}
+                <button type="button" class="close" data-toggle="modal" data-target="#delete-{{ runnerID.replace(' ', '') }}">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="card-body">
+                Status: {{ runner.status() }}
+                {% for target in runner.targets %}
+                    <br>Target: {{ target }}
+                {% endfor %}
+            </div>
+            <div class="card-footer">
+                <form id="appAction-{{ runnerID }}" method="POST">
+                  <input type="hidden" id="hiddenAppName" name="runnerID" value="{{ runnerID }}">
+                  {% if runner.started() %}
+                    <button type="submit" class="btn btn-outline-secondary" value="stop" name="action">Stop</button>
+                  {% else %}
+                    <button type="submit" class="btn btn-outline-secondary" value="start" name="action">Start</button>
+                  {% endif %}
+                  <button type="submit" class="btn btn-outline-secondary" value="restart" name="action">Restart</button>
+                </form>
+            </div>
+        </div>
+      {% endfor %}
+    </form>
+    </div>
+  </div>
+  <div class="col-2">
+    {% for module in modules.values() %}
+      {{ moduleView(module, targets) }}
+    {% endfor %}
+  </div>
+</div>
+
+  <!-- Modal per App-->
+  {% for runnerID in runners %}
+  <form method="post" id="appDelete">
+  <div class="modal fade" id="delete-{{ runnerID.replace(' ', '') }}" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Delete App</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          Really delete?
+        </div>
+        <div class="modal-footer">
+          <input type="hidden" id="hiddenAppName" name="runnerID" value="{{ runnerID }}">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" name="action" value="delete">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </form>
+  {% endfor %}
+
+{% endblock %}

@@ -10,7 +10,7 @@ class ESM():
         self.session = IntegrationHandler().esm.Session
         self.get_details = get_details
 
-    def dsGetDataSourceListOnce(self, **kwargs):
+    def dsGetDataSourceListOnce(self):
 
         # Get all devices from ESM
         self.device_id = []
@@ -37,7 +37,9 @@ class ESM():
             payload = json.dumps(dslist)
             yield payload
 
-    def dsGetDataSourceList(self, sentinel : threading.Event = threading.Event(), interval : int = 3600):
+    def dsGetDataSourceList(self):
+        self.sentinel = threading.Event()
+        self.intervall = 300
 
         # Get all devices from ESM
         self.device_id = []
@@ -46,7 +48,7 @@ class ESM():
         for erc in response:
             self.device_id.append(erc['id'])
 
-        while not sentinel.is_set():
+        while not self.sentinel.is_set():
             for erc in self.device_id:
                 dslist = []
                 payload = {'receiverId' : erc}
@@ -64,4 +66,4 @@ class ESM():
                 # Create and send message
                 payload = json.dumps(dslist)
                 yield payload
-            sentinel.wait(interval)
+            self.sentinel.wait(self.interval)

@@ -5,9 +5,10 @@ import json
 
 class messageBrokerFactory_kafka:
 
-    def __init__(self, appID, topicOut=[], debug=False):
+    def __init__(self, appID, sentinel, topicOut=[], debug=False):
 
         self.appID = appID
+        self.sentinel = sentinel
         self.debug = debug
 
         if self.debug:
@@ -21,10 +22,10 @@ class messageBrokerFactory_kafka:
         except Exception as err:
             raise appError(self.appID, 'Message sub-system not available (' + str(err) + ')')
 
-    def consume(self, sentinel, **kwargs):
+    def consume(self, **kwargs):
         if not self.consumer:
             self._create_topicIn()
-        while not sentinel.is_set():
+        while not self.sentinel.is_set():
             message = self.consumer.consume(block=False)
             if message:
                 yield message.value.decode()
@@ -54,9 +55,10 @@ class messageBrokerFactory:
 
     brokerList : { str : queue.Queue } = {}
 
-    def __init__(self, appID, topicOut=[], debug=False):
+    def __init__(self, appID, sentinel, topicOut=[], debug=False):
 
         self.topicIn = appID.replace(' ', '_')
+        self.sentinel = sentinel
         self.debug = debug
         self.topicOut = [topic.replace(' ', '_') for topic in topicOut]
 
@@ -66,10 +68,10 @@ class messageBrokerFactory:
         if self.debug:
             print(self.topicIn + ': ' + 'queue created')
 
-    def consume(self, sentinel, **kwargs):
+    def consume(self, **kwargs):
         if not self.queue:
             self.queue = messageBrokerFactory.brokerList[self.topicIn]
-        while not sentinel.is_set():
+        while not self.sentinel.is_set():
             if not self.queue.empty():
                 if self.debug:
                     print(self.topicIn + ': ' + 'Consuming message')

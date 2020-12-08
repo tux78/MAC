@@ -1,6 +1,8 @@
 import logging
 import queue
 import json
+import threading
+
 from typing import TypedDict
 from utils import IntegrationHandler
 
@@ -10,11 +12,13 @@ from dxlclient.message import Event
 from dxltieclient import TieClient
 from dxltieclient.constants import HashType, TrustLevel, FileType, FileProvider, ReputationProp
 
+from dxlepoclient import EpoClient
+
 class OpenDXL:
 
     def __init__(self, topic):
-        self.client = IntegrationHandler().dxl.Client
         self.topic = topic
+        self.client = IntegrationHandler().dxl.Client
         self.queue = queue.Queue()
         self.client.connect()
         self._listenerStarted = False
@@ -22,7 +26,7 @@ class OpenDXL:
     def __del__(self):
         self.client.destroy()
 
-    def _startDxlListener(self):
+    def _startDxlListener(self, topic):
         self._listenerStarted = True
 
         class MyEventCallback(EventCallback):
@@ -33,14 +37,13 @@ class OpenDXL:
             def on_event(self, event):
                 self.queue.put(event.payload.decode())
 
-        self.client.add_event_callback(self.topic, MyEventCallback(self.queue))
+        self.client.add_event_callback(topic, MyEventCallback(self.queue))
 
-    def getMessage(self, sentinel, interval):
+    def getMessage(self):
         if not self._listenerStarted:
-            self._startDxlListener()
-        while not sentinel.is_set():
-            if not self.queue.empty():
-                yield self.queue.get()
+            self._startDxlListener(self.topic)
+        while not self.queue.empty():
+            yield self.queue.get()
 
     def sendMessage(self, payload):
         event = Event(self.topic)
@@ -74,3 +77,27 @@ class OpenDXL:
                 )
             except ValueError as e:
                 pass
+
+class OpenDXL_ePO:
+
+    def __init__(self, epo_command, epo_parameter='{"searchText": ""}', epo_tag=''):
+        self.client = IntegrationHandler().dxl.Client
+        self.client.connect()
+
+        self.ePO_Unique_ID = None
+        self.ePO_Command = epo_command
+        self.ePO_Parameter = json.loads(epo_parameter)
+        self.ePO_Tag = epo_tag
+
+        self.ePO_Client = EpoClient(self.client, self.EPO_UNIQUE_ID)
+
+    def __del__(self):
+        self.client.destroy()
+
+    def runCommand(self):
+        print('Starting query')
+        response = self.ePO_Client.run_command(self.ePO_Command, self.ePO_Parameter)
+        response = json.loads(response)
+        for host in response:
+            if self.ePO_Tag and self.ePO_Tag in host['EPOLeafNode.Tags'].split(','):
+                yield(response)

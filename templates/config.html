@@ -21,12 +21,11 @@
             <h3>Options</h3>
             <div class="input-group mb-3">
               <div class="input-group-prepend">
-                <span class="input-group-text">Consumer</span>
+                <span class="input-group-text">Runner</span>
               </div>
-              <select class="custom-select" name="module_consume">
-                <option value="" selected>Default (kafka)</option>
+              <select class="custom-select" name="module_runner">
                 {% for call in app.module.availCalls %}
-                    <option value="{{ call }}" {% if call == app.consume %}selected{% endif %}>{{ call }}</option>
+                    <option value="{{ call }}" {% if call == app.runner %}selected{% endif %}>{{ call }}</option>
                 {% endfor %}
               </select>
               <div class="input-group-prepend">
@@ -39,28 +38,6 @@
                 aria-label="Default"
                 aria-describedby="inputGroup-sizing-default"
                 name="module_interval">
-            </div>
-            <div class="input-group mb-3">
-              <div class="input-group-prepend">
-                <span class="input-group-text">Processing</span>
-              </div>
-              <select class="custom-select" name="module_process">
-                <option value="" selected>Default (pass-through)</option>
-                {% for call in app.module.availCalls %}
-                    <option value="{{ call }}" {% if call == app.process %}selected{% endif %}>{{ call }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="input-group mb-3">
-              <div class="input-group-prepend">
-                <span class="input-group-text">Produce</span>
-              </div>
-              <select class="custom-select" name="module_produce">
-                <option value="" selected>Default (kafka)</option>
-                {% for call in app.module.availCalls %}
-                    <option value="{{ call }}" {% if call == app.produce %}selected{% endif %}>{{ call }}</option>
-                {% endfor %}
-              </select>
             </div>
           </div>
           <div id="Targets" class="tab-pane fade">

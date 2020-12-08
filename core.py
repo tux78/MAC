@@ -21,23 +21,21 @@ class appFactory(messageBrokerFactory, threading.Thread):
 
     def run(self):
         self.name = 'APP-' + self.app.appID
-        super().__init__(self.app.appID, self.app.targets)
+        super().__init__(self.app.appID, self.action, self.app.targets,)
 
         self.status = 'Initializing ' + self.app.module.moduleClassName
         try:
             obj = self.app.module.extClass(**self.app.extParameters)
+            self.call = getattr(obj, self.app.runner)
         except Exception as err:
             self.stop(str(err))
         self.status = 'Applying ' + self.app.module.moduleClassName + ' handlers'
-        if self.app.consume:
-            self.consume = getattr(obj, self.app.consume)
-        if self.app.process:
-            self.process = getattr(obj, self.app.process)
-        if self.app.produce:
-            self.produce = getattr(obj, self.app.produce)
+        if len(self.call.__code__.co_varnames[1:self.call.__code__.co_argcount]) > 0:
+            self.process = self.call
+        else:
+            self.consume = self.call
 
-        self.status = 'running'
-
+        self.status = 'starting'
         consumeThread = threading.Thread(target=self.appConsume, name=self.name + '-consumer')
         processThread = threading.Thread(target=self.appProcess, name=self.name + '-processor')
         produceThread = threading.Thread(target=self.appProduce, name=self.name + '-producer')
@@ -45,25 +43,25 @@ class appFactory(messageBrokerFactory, threading.Thread):
         processThread.start()
         produceThread.start()
 
+        self.status = 'running'
         while not self.action.is_set() and self.status == 'running':
             pass
 
         obj = ''
 
     def stop(self, reason = 'regular stop'):
-        self.status = 'stopping ' + self.app.module.moduleClassName + '. Reason: ' + reason
+        self.status = 'stopped ' + self.app.module.moduleClassName + '. Reason: ' + reason
         self.action.set()
         threading.Thread.join(self)
 
     def appConsume(self):
-        try:
-            for payload in self.consume(**{'sentinel' : self.action, 'interval' : int(self.app.interval)}):
-                self.processQueue.put(payload)
-        except StopIteration:
-            self.stop()
-        except Exception as err:
-            self.stop(str(err))
-        self.stop()
+        while not self.action.is_set():
+            try:
+                for payload in self.consume():
+                    self.processQueue.put(payload)
+                self.action.wait(self.app.interval)
+            except Exception as err:
+                self.stop(str(err))
 
     def appProcess(self):
         while not self.action.is_set():
@@ -124,6 +122,18 @@ class core:
     def integration(self):
         return self._integration
 
+    ################
+    # Runner actions
+    ################
+    def addRunner(self, runnerID, module, runner, interval, targets, extParameters):
+        self.config.addApp(appID = runnerID,
+            moduleID = module,
+            runner = runner,
+            interval = interval,
+            targets = targets,
+            extParameters = extParameters
+        )
+
     #############
     # App actions
     #############
@@ -161,8 +171,10 @@ from dataclasses import dataclass, field
 
 @dataclass
 class function:
-    call : type
-    requiredParams : list[tuple]
+    call         : type
+    inbound      : [str]
+    configParams : {str: str}
+    annotations  : {str: str}
 
 @dataclass
 class module:
@@ -170,30 +182,33 @@ class module:
     moduleName      : str
     extClass        : type
     filename        : str
-    requiredParams  : list[str] = field(init=False, repr=False)
-    availCalls      : list[str] = field(init=False, repr=False)
-    calls           : dict[str: type] = field(init=False)
+    requiredParams  : [str] = field(init=False, repr=False)
+    availCalls      : [str] = field(init=False, repr=False)
+    functions       : {str: function} = field(init=False)
 
     def __post_init__(self):
         if not self.extClass:
             self.extClass = getattr(importlib.import_module(self.moduleName), self.moduleClassName)
-        self.requiredParams = self.extClass.__init__.__code__.co_varnames[1:self.extClass.__init__.__code__.co_argcount]
+        params = self.extClass.__init__.__code__\
+            .co_varnames[1:self.extClass.__init__.__code__.co_argcount]
+        defaults = self.extClass.__init__.__defaults__
+        self.requiredParams = dict(zip(params, ['(String)'] * (len(params)-(0 if not defaults else len(defaults))) + ([] if not defaults else list(defaults))))
         self.availCalls = [call for call in dir(self.extClass) if not call[0] == '_']
-        self.calls = {}
-        for call in dir(self.extClass):
-            if not call[0] == '_':
-                self.calls[call] = function(
-                    call = getattr(self.extClass, call),
-                    requiredParams = getattr(self.extClass, call).__kwdefaults__
-                )
+        self.functions = {}
+
+        for call in [getattr(self.extClass, call) for call in dir(self.extClass) if not call[0] == '_']:
+            self.functions[call] = function(
+                call = call,
+                inbound = call.__code__.co_varnames[1:call.__code__.co_argcount],
+                configParams = call.__kwdefaults__,
+                annotations = call.__annotations__
+            )
 
 @dataclass
 class app:
     appID         : str
     module        : module
-    consume       : str = ''
-    process       : str = ''
-    produce       : str = ''
+    runner        : str = ''
     interval      : int = 0
     targets       : list[str] = ()
     extParameters : list[tuple] = ()
@@ -224,9 +239,7 @@ class app:
     def write(self):
         return {
             'module'    : self.module.moduleClassName,
-            'consume'   : self.consume,
-            'process'   : self.process,
-            'produce'   : self.produce,
+            'runner'    : self.runner,
             'interval'  : self.interval,
             'targets'   : self.targets,
             'parameters': self.extParameters
@@ -273,9 +286,7 @@ class config:
                 _apps[key] = app(
                     appID = key,
                     module = self.modules[value['module']],
-                    consume = value['consume'],
-                    process = value['process'],
-                    produce = value['produce'],
+                    runner = value['runner'],
                     interval = int(value['interval']),
                     targets = value['targets'],
                     extParameters = value['parameters']
@@ -299,7 +310,7 @@ class config:
     def addModule(self, moduleID):
         filename = self.basedir + 'extensions/' + moduleID + '.py'
         with open(filename, 'a') as moduleFile:
-           moduleFile.write('import threading\r\n\r\nclass ' + moduleID + ':\r\n' +
+           moduleFile.write('class ' + moduleID + ':\r\n' +
 """\
 
     def __init__(self, username, ip):
@@ -308,21 +319,23 @@ class config:
         # initialize any required internal variables
         # such as credentials, IP addresses etc
 
-    def getDataOnce(self, **kwargs):
-        yield 'some data'
+    def getData(self):
+        # this is stub code
+        # please replace with some functional logic
+        myTool = SomeThirdparty.connect(self.ip, self.username)
+        payload = myTool.CollectData()
+        # yield data to be processed by MAC
+        yield payload
 
-    def getDataAsStream(self, sentinel : threading.Event = threading.Event(), interval : int = 3600):
-        while not sentinel.is_set():
-            # enter code here
-            # for continuous processing, have interval = 0
-            # the interval can be configured from within the App configuration
-            yield 'some data'
-            sentinel.wait(interval)
-
-    def sendData(self, payload):
+    def processData(self, payload):
         # send payload to desired destination
         # file output, consumer
-        pass
+        myTool = SomeThirdparty.connect(self.ip, self.username)
+        myTool.PublishData(payload)
+
+        # if data may be processed by subsequent apps/targets,
+        # the payload can be yielded
+        yield payload
 """
            )
         self.modules = self._getModules()
