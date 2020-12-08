@@ -89,7 +89,7 @@ class OpenDXL_ePO:
         self.ePO_Parameter = json.loads(epo_parameter)
         self.ePO_Tag = epo_tag
 
-        self.ePO_Client = EpoClient(self.client, self.EPO_UNIQUE_ID)
+        self.ePO_Client = EpoClient(self.client, self.ePO_Unique_ID)
 
     def __del__(self):
         self.client.destroy()
