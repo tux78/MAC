@@ -15,7 +15,7 @@
                 <a data-toggle="modal" data-target="#create-{{ runnerID.replace(' ', '') }}-modal">
                     <h3>{{ runnerID }}</h3>
                 </a>
-                {{ configRunner(runnerID, runner.module.moduleClassName, runner.runner, runner.interval, runner.extParameters, targets) }}
+                {{ configRunner(runnerID, runner.module.moduleClassName, runner.runner, runner.interval, runner.extParameters, runners.keys()) }}
                 <button type="button" class="close" data-toggle="modal" data-target="#delete-{{ runnerID.replace(' ', '') }}">
                   <span aria-hidden="true">&times;</span>
                 </button>
@@ -44,7 +44,7 @@
   </div>
   <div class="col-2">
     {% for module in modules.values() %}
-      {{ moduleView(module, targets) }}
+      {{ moduleView(module, runners.keys()) }}
     {% endfor %}
   </div>
 </div>
