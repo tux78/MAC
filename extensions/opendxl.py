@@ -80,11 +80,11 @@ class OpenDXL:
 
 class OpenDXL_ePO:
 
-    def __init__(self, epo_command, epo_parameter='{"searchText": ""}', epo_tag=''):
+    def __init__(self, epo_command, epo_parameter='{"searchText": ""}', epo_tag='', epo_unique_id=None):
         self.client = IntegrationHandler().dxl.Client
         self.client.connect()
 
-        self.ePO_Unique_ID = None
+        self.ePO_Unique_ID = epo_unique_id
         self.ePO_Command = epo_command
         self.ePO_Parameter = json.loads(epo_parameter)
         self.ePO_Tag = epo_tag
