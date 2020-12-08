@@ -99,5 +99,9 @@ class OpenDXL_ePO:
         response = self.ePO_Client.run_command(self.ePO_Command, self.ePO_Parameter)
         response = json.loads(response)
         for host in response:
-            if self.ePO_Tag and self.ePO_Tag in host['EPOLeafNode.Tags'].split(','):
-                yield(response)
+            if self.ePO_Tag and self.ePO_Tag in host['EPOLeafNode.Tags'].split(', '):
+                retVal = {
+                    'hostname' : host['EPOComputerProperties.ComputerName'],
+                    'ip_address' : host['EPOComputerProperties.IPAddress']
+                }
+                yield(retVal)
