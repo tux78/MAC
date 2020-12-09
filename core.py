@@ -9,6 +9,10 @@ from utils import IntegrationHandler
 
 from dxlclient import _cli
 
+import sys
+MIN_PYTHON = (3, 9)
+assert sys.version_info >= MIN_PYTHON, f"requires Python {'.'.join([str(n) for n in MIN_PYTHON])} or newer"
+
 class appFactory(messageBrokerFactory, threading.Thread):
 
     def __init__(self, app):
@@ -90,7 +94,7 @@ class appFactory(messageBrokerFactory, threading.Thread):
 
 class core:
 
-    def __init__(self, configFile='config/config.json', basedir='/app/'):
+    def __init__(self, configFile='config/config.json', basedir='./'):
         self.config = config(configFile=configFile, basedir=basedir)
         self._integration = IntegrationHandler(basedir)
 

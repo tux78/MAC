@@ -10,7 +10,7 @@ import base64
 
 class IntegrationHandler:
 
-    def __init__(self, basedir='/app/'):
+    def __init__(self, basedir='./'):
         self._confDir = basedir + 'config/'
         self._models = {
             'dxl' : dxlConfig,
@@ -83,7 +83,7 @@ class dxlConfig:
         self.dxlProvisioningArguments.common_or_csrfile_name = cn
         self.dxlProvisioningArguments.config_dir = self._confDir
         dxlCommand = _cli.ProvisionDxlClientSubcommand()
-        dxlCommand.execute(dxlProvisioningArguments)
+        dxlCommand.execute(self.dxlProvisioningArguments)
 
     @classmethod
     def update(self, host, user, password, port='8443'):
@@ -93,7 +93,7 @@ class dxlConfig:
         self.dxlProvisioningArguments.port = port
         self.dxlProvisioningArguments.config_dir = self._confDir
         self.dxlCommand = _cli.UpdateConfigSubcommand()
-        dxlCommand.execute(dxlProvisioningArguments)
+        dxlCommand.execute(self.dxlProvisioningArguments)
 
 class esmConfig:
 
