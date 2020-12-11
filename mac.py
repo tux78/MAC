@@ -117,6 +117,8 @@ appRunning = {}
 
 def main():
 
+    api.jinja_env.auto_reload = True
+    api.config["TEMPLATES_AUTO_RELOAD"] = True
     api.run(host='0.0.0.0')
 
 if __name__ == "__main__":

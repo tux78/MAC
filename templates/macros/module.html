@@ -1,24 +1,26 @@
 {% macro moduleView(module, targets) %}
-  <div class="card">
-    <div class="card-header">
-      <h3>{{ module.moduleClassName }}</h3>
-    </div>
-    <div class="card-body">
+  <a class="list-group-item active" data-toggle="collapse" href="#calls-{{ module.moduleClassName }}">
+    {{ module.moduleClassName }}
+  </a>
+  <div class="collapse" id="calls-{{ module.moduleClassName }}">
+    <div class="list-group">
       {% for call in module.availCalls %}
-        <button type="button" class="btn btn-outline-dark btn-sm btn-block" data-toggle="modal" data-target="#create-New-{{ call }}-modal">{{ call }}</button>
-        {{ configRunner("New-" + call, module.moduleClassName, call, "0", module.requiredParams, targets) }}
+        <a class="list-group-item" data-toggle="modal" data-target="#config-New-{{ call }}-modal">
+          {{ call }}
+        </a>
+        {{ configRunner("New-" + call, module.moduleClassName, call, "0", module.requiredParams, targets, ()) }}
       {% endfor %}
     </div>
   </div>
 {% endmacro %}
 
-{% macro configRunner(runnerID, module, runner, interval, requiredParams, targets) %}
+{% macro configRunner(runnerID, module, runner, interval, requiredParams, targets, enabledTargets) %}
       <form id="form-{{ runner }}" method="POST">
-        <div class="modal fade" tabindex="-1" role="dialog" id="create-{{ runnerID.replace(' ', '') }}-modal">
+        <div class="modal fade" tabindex="-1" role="dialog" id="config-{{ runnerID.replace(' ', '') }}-modal">
           <div class="modal-dialog" role="document">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title">create new Runner of type {{ runner }}</h5>
+                <h5 class="modal-title">Runner: {{ runner }} ({{ module }})</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                   <span aria-hidden="true">&times;</span>
                 </button>
@@ -45,14 +47,16 @@
                 {% endfor %}
                 <hr>
                 {% for target in targets %}
+                  {% if target != runnerID %}
                   <div class="input-group mb-3">
                     <div class="input-group-prepend">
                       <div class="input-group-text">
-                        <input type="checkbox" name="targets_{{ target }}">
+                        <input type="checkbox" name="targets_{{ target }}" {% if target in enabledTargets %}checked="checked"{% endif %}>
                       </div>
                     </div>
                     <input type="text" class="form-control" value="{{ target }}">
                   </div>
+                  {% endif %}
                 {% endfor %}
               </div>
               <div class="modal-footer">
