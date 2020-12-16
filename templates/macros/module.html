@@ -1,16 +1,14 @@
 {% macro moduleView(module, targets) %}
-  <a class="list-group-item active" data-toggle="collapse" href="#calls-{{ module.moduleClassName }}">
+  <a class="list-group-item list-group-item-action list-group-item-secondary" data-toggle="collapse" href="#calls-{{ module.moduleClassName }}">
     {{ module.moduleClassName }}
   </a>
-  <div class="collapse" id="calls-{{ module.moduleClassName }}">
-    <div class="list-group">
-      {% for call in module.availCalls %}
-        <a class="list-group-item" data-toggle="modal" data-target="#config-New-{{ call }}-modal">
-          {{ call }}
-        </a>
-        {{ configRunner("New-" + call, module.moduleClassName, call, "0", module.requiredParams, targets, ()) }}
-      {% endfor %}
-    </div>
+  <div class="list-group collapse" id="calls-{{ module.moduleClassName }}">
+    {% for call in module.availCalls %}
+      <a class="list-group-item list-group-item-action list-group-item-light" data-toggle="modal" data-target="#config-New-{{ call }}-modal">
+        {{ call }}
+      </a>
+      {{ configRunner("New-" + call, module.moduleClassName, call, "0", module.requiredParams, targets, ()) }}
+    {% endfor %}
   </div>
 {% endmacro %}
 

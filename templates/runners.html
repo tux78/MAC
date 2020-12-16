@@ -9,15 +9,15 @@
       <div class="row">
         <form method="post" id="runnerStatus">
           {% for runnerID, runner in runners.items() %}
-            <div class="card shadow p-3 m-2 bg-white rounded" style="width: 28rem;">
+            <div class="card shadow m-2 bg-white rounded" style="width: 28rem;">
               <div class="card-header">
                 <a data-toggle="modal" data-target="#config-{{ runnerID.replace(' ', '') }}-modal">
-                    <h3>{{ runnerID }}</h3>
+                  {{ runnerID }}
                 </a>
-                {{ configRunner(runnerID, runner.module.moduleClassName, runner.runner, runner.interval, runner.extParameters, runners.keys(), runner.targets) }}
                 <button type="button" class="close" data-toggle="modal" data-target="#delete-{{ runnerID.replace(' ', '') }}">
                   <span aria-hidden="true">&times;</span>
                 </button>
+                {{ configRunner(runnerID, runner.module.moduleClassName, runner.runner, runner.interval, runner.extParameters, runners.keys(), runner.targets) }}
               </div>
               <div class="card-body">
                 Status: {{ runner.status() }}
